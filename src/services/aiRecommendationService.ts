@@ -2,7 +2,7 @@ import { DeepseekSuggestion } from '../types';
 
 export interface AIProvider {
   name: string;
-  getSuggestions(category: string, existingCourses: string[]): Promise<DeepseekSuggestion[]>;
+  getSuggestions(category: string, existingCourses: string[], subCategory?: string): Promise<DeepseekSuggestion[]>;
 }
 
 // Perplexity AI Service (has web search capabilities)
@@ -18,11 +18,12 @@ export class PerplexityService implements AIProvider {
     this.apiKey = apiKey;
   }
 
-  async getSuggestions(category: string, existingCourses: string[] = []): Promise<DeepseekSuggestion[]> {
+  async getSuggestions(category: string, existingCourses: string[] = [], subCategory?: string): Promise<DeepseekSuggestion[]> {
     try {
-      console.log(`PerplexityService: Getting web-based suggestions for ${category}`);
+      const context = subCategory ? `${category} > ${subCategory}` : category;
+      console.log(`PerplexityService: Getting web-based suggestions for ${context}`);
       
-      const prompt = this.buildWebSearchPrompt(category, existingCourses);
+      const prompt = this.buildWebSearchPrompt(category, existingCourses, subCategory);
       
       const response = await fetch(this.baseUrl, {
         method: 'POST',
@@ -58,54 +59,56 @@ export class PerplexityService implements AIProvider {
         throw new Error('No response content from Perplexity API');
       }
 
-      return this.parseResponse(content, category);
+      return this.parseResponse(content, category, subCategory);
     } catch (error) {
       console.error('Error getting suggestions from Perplexity:', error);
       throw error;
     }
   }
 
-  private buildWebSearchPrompt(category: string, existingCourses: string[]): string {
+  private buildWebSearchPrompt(category: string, existingCourses: string[], subCategory?: string): string {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+    const searchContext = subCategory ? `"${category}" category, specifically in the "${subCategory}" subcategory` : `"${category}" category`;
+    const suggestionContext = subCategory ? `${category} > ${subCategory}` : category;
     
     return `
-      Search the web for the latest trends, technologies, and market demands in "${category}" as of ${currentMonth} ${currentYear}.
+      Search the web for the latest trends, technologies, and market demands in the ${searchContext} as of ${currentMonth} ${currentYear}.
       
-      Based on your web search findings, suggest 5 innovative and highly relevant courses for the "${category}" category.
+      Based on your web search findings, suggest 5 innovative and highly relevant courses for the ${suggestionContext}.
       
       ${existingCourses.length > 0 ? `AVOID suggesting courses similar to these existing ones: ${existingCourses.join(', ')}` : ''}
       
       Focus on:
-      - Latest industry trends and emerging technologies (${currentYear})
+      - Latest industry trends and emerging technologies in ${searchContext} (${currentYear})
       - Current job market demands and skills gaps
       - New tools, frameworks, and methodologies
       - Industry certifications and standards that are trending
       - Technologies that companies are actively hiring for
       
       Search for information about:
-      - Latest ${category} job postings and required skills
+      - Latest ${searchContext} job postings and required skills
       - Recent technology releases and updates
-      - Industry reports and surveys from ${currentYear}
-      - Popular courses on major learning platforms
-      - Trending topics in ${category} communities and forums
+      - Industry reports and surveys from ${currentYear} related to ${searchContext}
+      - Popular courses on major learning platforms in ${searchContext}
+      - Trending topics in ${searchContext} communities and forums
       
       Return ONLY a valid JSON array with this structure:
       [
         {
           "course_name": "Course Title Based on Current Trends",
           "category": "${category}",
-          "sub_category": "Relevant Current Subcategory",
+          "sub_category": "${subCategory || 'Relevant Current Subcategory'}",
           "course_overview": "Detailed description focusing on current market needs and latest technologies",
           "reasoning": "Explanation based on current web search findings about why this course is in demand"
         }
       ]
       
-      Ensure all suggestions are based on current web information and market trends.
+      Ensure all suggestions are based on current web information and market trends specifically related to ${suggestionContext}.
     `;
   }
 
-  private parseResponse(content: string, category: string): DeepseekSuggestion[] {
+  private parseResponse(content: string, category: string, subCategory?: string): DeepseekSuggestion[] {
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
@@ -121,7 +124,7 @@ export class PerplexityService implements AIProvider {
       return suggestions.map(suggestion => ({
         course_name: suggestion.course_name || '',
         category: suggestion.category || category,
-        sub_category: suggestion.sub_category || '',
+        sub_category: suggestion.sub_category || subCategory || '',
         course_overview: suggestion.course_overview || '',
         reasoning: suggestion.reasoning || ''
       }));
@@ -145,11 +148,12 @@ export class OpenAIWebSearchService implements AIProvider {
     this.apiKey = apiKey;
   }
 
-  async getSuggestions(category: string, existingCourses: string[] = []): Promise<DeepseekSuggestion[]> {
+  async getSuggestions(category: string, existingCourses: string[] = [], subCategory?: string): Promise<DeepseekSuggestion[]> {
     try {
-      console.log(`OpenAIWebSearchService: Getting web-based suggestions for ${category}`);
+      const context = subCategory ? `${category} > ${subCategory}` : category;
+      console.log(`OpenAIWebSearchService: Getting web-based suggestions for ${context}`);
       
-      const prompt = this.buildWebSearchPrompt(category, existingCourses);
+      const prompt = this.buildWebSearchPrompt(category, existingCourses, subCategory);
       
       const response = await fetch(this.baseUrl, {
         method: 'POST',
@@ -185,25 +189,27 @@ export class OpenAIWebSearchService implements AIProvider {
         throw new Error('No response content from OpenAI API');
       }
 
-      return this.parseResponse(content, category);
+      return this.parseResponse(content, category, subCategory);
     } catch (error) {
       console.error('Error getting suggestions from OpenAI:', error);
       throw error;
     }
   }
 
-  private buildWebSearchPrompt(category: string, existingCourses: string[]): string {
+  private buildWebSearchPrompt(category: string, existingCourses: string[], subCategory?: string): string {
     const currentYear = new Date().getFullYear();
+    const searchContext = subCategory ? `"${category}" category, specifically in the "${subCategory}" subcategory` : `"${category}" category`;
+    const suggestionContext = subCategory ? `${category} > ${subCategory}` : category;
     
     return `
-      Research the latest trends and market demands in "${category}" for ${currentYear}.
+      Research the latest trends and market demands in the ${searchContext} for ${currentYear}.
       
-      Based on current industry information, suggest 5 innovative courses for the "${category}" category.
+      Based on current industry information, suggest 5 innovative courses for ${suggestionContext}.
       
       ${existingCourses.length > 0 ? `AVOID suggesting courses similar to: ${existingCourses.join(', ')}` : ''}
       
       Focus on:
-      - Current job market trends and in-demand skills
+      - Current job market trends and in-demand skills in ${searchContext}
       - Latest technology releases and updates
       - Emerging tools and frameworks
       - Industry certifications gaining popularity
@@ -214,7 +220,7 @@ export class OpenAIWebSearchService implements AIProvider {
         {
           "course_name": "Course Title",
           "category": "${category}",
-          "sub_category": "Subcategory",
+          "sub_category": "${subCategory || 'Subcategory'}",
           "course_overview": "Detailed description",
           "reasoning": "Why this course is currently in demand"
         }
@@ -222,7 +228,7 @@ export class OpenAIWebSearchService implements AIProvider {
     `;
   }
 
-  private parseResponse(content: string, category: string): DeepseekSuggestion[] {
+  private parseResponse(content: string, category: string, subCategory?: string): DeepseekSuggestion[] {
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
@@ -238,7 +244,7 @@ export class OpenAIWebSearchService implements AIProvider {
       return suggestions.map(suggestion => ({
         course_name: suggestion.course_name || '',
         category: suggestion.category || category,
-        sub_category: suggestion.sub_category || '',
+        sub_category: suggestion.sub_category || subCategory || '',
         course_overview: suggestion.course_overview || '',
         reasoning: suggestion.reasoning || ''
       }));
@@ -262,10 +268,11 @@ export class DeepseekService implements AIProvider {
     this.apiKey = apiKey;
   }
 
-  async getSuggestions(category: string, existingCourses: string[] = []): Promise<DeepseekSuggestion[]> {
+  async getSuggestions(category: string, existingCourses: string[] = [], subCategory?: string): Promise<DeepseekSuggestion[]> {
     try {
-      console.log(`DeepseekService: Getting suggestions for ${category}`);
-      const prompt = this.buildPrompt(category, existingCourses);
+      const context = subCategory ? `${category} > ${subCategory}` : category;
+      console.log(`DeepseekService: Getting suggestions for ${context}`);
+      const prompt = this.buildPrompt(category, existingCourses, subCategory);
       
       const response = await fetch(this.baseUrl, {
         method: 'POST',
@@ -301,32 +308,35 @@ export class DeepseekService implements AIProvider {
         throw new Error('No response content from Deepseek API');
       }
 
-      return this.parseResponse(content, category);
+      return this.parseResponse(content, category, subCategory);
     } catch (error) {
       console.error('Error getting suggestions from Deepseek:', error);
       throw error;
     }
   }
 
-  private buildPrompt(category: string, existingCourses: string[]): string {
+  private buildPrompt(category: string, existingCourses: string[], subCategory?: string): string {
+    const suggestionContext = subCategory ? `${category} > ${subCategory}` : category;
+    
     return `
-      Suggest 5 highly innovative and unique courses for the "${category}" category.
+      Suggest 5 highly innovative and unique courses for ${suggestionContext}.
       
       ${existingCourses.length > 0 ? `COMPLETELY AVOID these existing courses: ${existingCourses.join(', ')}` : ''}
       
       Be extremely creative and suggest courses that:
-      - Cover emerging and cutting-edge topics
+      - Cover emerging and cutting-edge topics in ${suggestionContext}
       - Address future industry needs
       - Combine multiple disciplines
       - Focus on practical, hands-on skills
       - Are completely different from existing courses
+      ${subCategory ? `- Are specifically relevant to the "${subCategory}" subcategory within "${category}"` : ''}
       
       Return ONLY a valid JSON array:
       [
         {
           "course_name": "Unique Course Title",
           "category": "${category}",
-          "sub_category": "Innovative Subcategory",
+          "sub_category": "${subCategory || 'Innovative Subcategory'}",
           "course_overview": "Detailed description of unique learning outcomes",
           "reasoning": "Why this innovative course is valuable"
         }
@@ -334,7 +344,7 @@ export class DeepseekService implements AIProvider {
     `;
   }
 
-  private parseResponse(content: string, category: string): DeepseekSuggestion[] {
+  private parseResponse(content: string, category: string, subCategory?: string): DeepseekSuggestion[] {
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
@@ -350,7 +360,7 @@ export class DeepseekService implements AIProvider {
       return suggestions.map(suggestion => ({
         course_name: suggestion.course_name || '',
         category: suggestion.category || category,
-        sub_category: suggestion.sub_category || '',
+        sub_category: suggestion.sub_category || subCategory || '',
         course_overview: suggestion.course_overview || '',
         reasoning: suggestion.reasoning || ''
       }));
@@ -396,7 +406,7 @@ export class AIRecommendationService {
     }
   }
 
-  async getSuggestions(category: string, existingCourses: string[] = []): Promise<{
+  async getSuggestions(category: string, existingCourses: string[] = [], subCategory?: string): Promise<{
     suggestions: DeepseekSuggestion[];
     provider: string;
   }> {
@@ -411,7 +421,7 @@ export class AIRecommendationService {
     console.log(`Using ${provider.name} for suggestions (provider ${this.currentProviderIndex + 1}/${this.providers.length})`);
 
     try {
-      const suggestions = await provider.getSuggestions(category, existingCourses);
+      const suggestions = await provider.getSuggestions(category, existingCourses, subCategory);
       return {
         suggestions,
         provider: provider.name
@@ -423,7 +433,7 @@ export class AIRecommendationService {
       if (this.providers.length > 1) {
         console.log(`Trying next provider...`);
         const nextProvider = this.providers[this.currentProviderIndex];
-        const suggestions = await nextProvider.getSuggestions(category, existingCourses);
+        const suggestions = await nextProvider.getSuggestions(category, existingCourses, subCategory);
         return {
           suggestions,
           provider: nextProvider.name

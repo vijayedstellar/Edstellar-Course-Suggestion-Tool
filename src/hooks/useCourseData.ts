@@ -71,7 +71,7 @@ export const useCourseData = () => {
     }
   };
 
-  const handleSuggestForCategory = async (category: string) => {
+  const handleSuggestForCategory = async (category: string, subCategory?: string) => {
     if (!aiService) {
       setError('AI recommendation service is not available. Please check your API key configuration.');
       return;
@@ -80,17 +80,18 @@ export const useCourseData = () => {
     try {
       setIsSuggestionsLoading(true);
       setError(null);
-      console.log(`Getting AI suggestions for category: ${category}`);
+      const context = subCategory ? `${category} > ${subCategory}` : category;
+      console.log(`Getting AI suggestions for: ${context}`);
       
       // Get existing course names to avoid duplicates
       const existingCourseNames = courses.map(c => c.course_name);
       
       console.log(`Found ${existingCourseNames.length} existing courses to avoid duplicates`);
       
-      const result = await aiService.getSuggestions(category, existingCourseNames);
+      const result = await aiService.getSuggestions(category, existingCourseNames, subCategory);
       const { suggestions: newSuggestions, provider } = result;
       
-      console.log(`Received ${newSuggestions.length} suggestions from ${provider}`);
+      console.log(`Received ${newSuggestions.length} suggestions from ${provider} for ${context}`);
       
       // Additional client-side validation to ensure no duplicates or similar courses
       const filteredSuggestions = newSuggestions.filter(suggestion => {
@@ -124,11 +125,11 @@ export const useCourseData = () => {
         return !isDuplicate;
       });
       
-      console.log(`Generated ${filteredSuggestions.length} unique suggestions for "${category}" using ${provider}`);
+      console.log(`Generated ${filteredSuggestions.length} unique suggestions for "${context}" using ${provider}`);
       setSuggestions(filteredSuggestions);
       
       if (filteredSuggestions.length === 0) {
-        setError(`No unique course suggestions could be generated for "${category}" using ${provider}. Try clicking "Get AI Suggestions" again to use a different AI provider, or try a different category.`);
+        setError(`No unique course suggestions could be generated for "${context}" using ${provider}. Try clicking "Get AI Suggestions" again to use a different AI provider, or try a different selection.`);
       }
     } catch (err) {
       console.error('Error getting suggestions:', err);

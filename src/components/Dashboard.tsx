@@ -105,8 +105,8 @@ export const Dashboard: React.FC = () => {
     setIsCSVUploadOpen(false);
   };
 
-  const handleSuggestForCategoryWithTab = async (category: string) => {
-    await handleSuggestForCategory(category);
+  const handleSuggestForCategoryWithTab = async (category: string, subCategory?: string) => {
+    await handleSuggestForCategory(category, subCategory);
     setActiveTab('ai-suggestions'); // Switch to AI suggestions tab after getting results
   };
 

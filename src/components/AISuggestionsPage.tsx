@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Sparkles, Plus, Heart, Loader2, BookOpen, Target, Lightbulb } from 'lucide-react';
+import { Sparkles, Plus, Heart, Loader2, BookOpen, Target, Lightbulb, Search } from 'lucide-react';
 import { DeepseekSuggestion } from '../types';
 
 interface AISuggestionsPageProps {
   suggestions: DeepseekSuggestion[];
   onAddSuggestion: (suggestion: DeepseekSuggestion) => void;
   onShortlistSuggestion: (suggestion: DeepseekSuggestion) => void;
-  onGetSuggestions: (category: string) => void;
+  onGetSuggestions: (category: string, subCategory?: string) => void;
   categories: Array<{ category: string; subCategories: string[] }>;
   isLoading: boolean;
 }
@@ -20,9 +20,22 @@ export const AISuggestionsPage: React.FC<AISuggestionsPageProps> = ({
   isLoading
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
   const [shortlistingIds, setShortlistingIds] = useState<Set<number>>(new Set());
 
+  // Filter categories and subcategories based on search query
+  const filteredCategories = categories.filter(cat => 
+    searchQuery === '' || 
+    cat.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cat.subCategories.some(sub => sub.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const selectedCategoryData = categories.find(c => c.category === selectedCategory);
+  const filteredSubCategories = selectedCategoryData?.subCategories.filter(sub =>
+    searchQuery === '' || sub.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
   const handleAddSuggestion = async (suggestion: DeepseekSuggestion, index: number) => {
     setAddingIds(prev => new Set(prev).add(index));
     try {
@@ -49,13 +62,21 @@ export const AISuggestionsPage: React.FC<AISuggestionsPageProps> = ({
     }
   };
 
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setSelectedSubCategory(''); // Reset subcategory when category changes
+  };
   const handleGetSuggestions = () => {
-    if (selectedCategory) {
+    if (selectedCategory || selectedSubCategory) {
       console.log(`Requesting suggestions for category: ${selectedCategory}`);
-      onGetSuggestions(selectedCategory);
+      onGetSuggestions(selectedCategory, selectedSubCategory || undefined);
     }
   };
 
+  const canGetSuggestions = selectedCategory || selectedSubCategory;
+  const suggestionContext = selectedSubCategory 
+    ? `${selectedCategory} > ${selectedSubCategory}` 
+    : selectedCategory;
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -68,47 +89,108 @@ export const AISuggestionsPage: React.FC<AISuggestionsPageProps> = ({
           </div>
         </div>
 
-        {/* Category Selection */}
-        <div className="flex items-center space-x-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Category for Suggestions
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="">Choose a category...</option>
-              {categories.map(({ category }) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+        {/* Search and Selection */}
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search categories or subcategories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
           </div>
-          <div className="pt-6">
-            <button
-              onClick={handleGetSuggestions}
-              disabled={!selectedCategory || isLoading}
-              className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              <span>{isLoading ? 'Searching Web & Getting AI Suggestions...' : 'Get AI Suggestions with Web Search'}</span>
-            </button>
+
+          {/* Category and Subcategory Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Category
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Choose a category...</option>
+                {filteredCategories.map(({ category }) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Subcategory (Optional)
+              </label>
+              <select
+                value={selectedSubCategory}
+                onChange={(e) => setSelectedSubCategory(e.target.value)}
+                disabled={!selectedCategory}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+              >
+                <option value="">All subcategories...</option>
+                {filteredSubCategories.map(subCategory => (
+                  <option key={subCategory} value={subCategory}>
+                    {subCategory}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <button
+                onClick={handleGetSuggestions}
+                disabled={!canGetSuggestions || isLoading}
+                className="w-full flex items-center justify-center space-x-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                <span>{isLoading ? 'Searching Web & Getting AI Suggestions...' : 'Get AI Suggestions with Web Search'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {selectedCategory && (
+        {/* Selection Summary */}
+        {canGetSuggestions && (
           <div className="mt-4 p-3 bg-white bg-opacity-60 rounded-md">
             <p className="text-sm text-purple-700">
-              <strong>Selected category:</strong> "{selectedCategory}". 
-              Click "Get AI Suggestions with Web Search\" to discover current market trends and unique course ideas based on real-time web research.
+              <strong>Selected:</strong> {suggestionContext}
+              {searchQuery && (
+                <span className="ml-2 text-purple-600">
+                  (filtered by: "{searchQuery}")
+                </span>
+              )}
             </p>
+            <p className="text-xs text-purple-600 mt-1">
+              Click "Get AI Suggestions with Web Search" to discover current market trends and unique course ideas based on real-time web research.
+            </p>
+          </div>
+        )}
+
+        {/* Search Results Info */}
+        {searchQuery && (
+          <div className="flex-1">
+            <div className="mt-4 p-3 bg-blue-50 rounded-md">
+              <p className="text-sm text-blue-700">
+                <strong>Search Results:</strong> Found {filteredCategories.length} categories matching "{searchQuery}"
+              </p>
+              {filteredCategories.length > 0 && (
+                <div className="mt-2 text-xs text-blue-600">
+                  {suggestionContext && (
+                    <span>Context: <span className="font-medium text-purple-700">{suggestionContext}</span></span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

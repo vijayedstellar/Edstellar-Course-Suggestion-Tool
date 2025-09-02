@@ -7,7 +7,7 @@ interface CourseFiltersProps {
   onFilterChange: (filter: CourseFilter) => void;
   categories: Array<{ category: string; subCategories: string[] }>;
   courses: Array<{ category: string; sub_category: string }>;
-  onSuggestForCategory: (category: string) => void;
+  onSuggestForCategory: (category: string, subCategory?: string) => void;
 }
 
 export const CourseFilters: React.FC<CourseFiltersProps> = ({
