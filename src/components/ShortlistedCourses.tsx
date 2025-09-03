@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, X, BookOpen, Calendar } from 'lucide-react';
+import { Heart, X, BookOpen, Calendar, FileText, MessageSquare } from 'lucide-react';
 import { ShortlistedCourse } from '../types';
 
 interface ShortlistedCoursesProps {
@@ -73,6 +73,14 @@ export const ShortlistedCourses: React.FC<ShortlistedCoursesProps> = ({
             <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
               {course.sub_category}
             </span>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full flex items-center space-x-1 ${
+              course.content_type === 'Course' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-orange-100 text-orange-800'
+            }`}>
+              <FileText className="w-3 h-3" />
+              <span>{course.content_type}</span>
+            </span>
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
               course.source === 'catalog' 
                 ? 'bg-green-100 text-green-800' 
@@ -85,6 +93,20 @@ export const ShortlistedCourses: React.FC<ShortlistedCoursesProps> = ({
           <p className="text-gray-700 text-sm leading-relaxed mb-3">
             {course.course_overview}
           </p>
+
+          {course.comments && course.comments.trim() && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-3">
+              <div className="flex items-start space-x-2">
+                <MessageSquare className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800 mb-1">Comments:</p>
+                  <p className="text-sm text-yellow-700 leading-relaxed">
+                    {course.comments}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {course.shortlisted_at && (
             <div className="flex items-center space-x-1 text-xs text-gray-500">

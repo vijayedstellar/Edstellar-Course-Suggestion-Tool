@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Sparkles, Plus, Heart, Loader2, BookOpen, Target, Lightbulb, Search } from 'lucide-react';
 import { DeepseekSuggestion } from '../types';
+import { ShortlistModal } from './ShortlistModal';
 
 interface AISuggestionsPageProps {
   suggestions: DeepseekSuggestion[];
   onAddSuggestion: (suggestion: DeepseekSuggestion) => void;
-  onShortlistSuggestion: (suggestion: DeepseekSuggestion) => void;
+  onShortlistSuggestion: (suggestion: DeepseekSuggestion, contentType: 'Blog' | 'Course', comments: string) => void;
   onGetSuggestions: (category: string, subCategory?: string) => void;
   categories: Array<{ category: string; subCategories: string[] }>;
   isLoading: boolean;
@@ -24,6 +25,7 @@ export const AISuggestionsPage: React.FC<AISuggestionsPageProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
   const [shortlistingIds, setShortlistingIds] = useState<Set<number>>(new Set());
+  const [shortlistModalIndex, setShortlistModalIndex] = useState<number | null>(null);
 
   // Filter categories and subcategories based on search query
   const filteredCategories = categories.filter(cat => 
@@ -50,15 +52,23 @@ export const AISuggestionsPage: React.FC<AISuggestionsPageProps> = ({
   };
 
   const handleShortlistSuggestion = async (suggestion: DeepseekSuggestion, index: number) => {
-    setShortlistingIds(prev => new Set(prev).add(index));
-    try {
-      await onShortlistSuggestion(suggestion);
-    } finally {
-      setShortlistingIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(index);
-        return newSet;
-      });
+    setShortlistModalIndex(index);
+  };
+
+  const handleShortlistConfirm = async (contentType: 'Blog' | 'Course', comments: string) => {
+    if (shortlistModalIndex !== null) {
+      const suggestion = suggestions[shortlistModalIndex];
+      setShortlistingIds(prev => new Set(prev).add(shortlistModalIndex));
+      try {
+        await onShortlistSuggestion(suggestion, contentType, comments);
+      } finally {
+        setShortlistingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(shortlistModalIndex);
+          return newSet;
+        });
+        setShortlistModalIndex(null);
+      }
     }
   };
 
@@ -353,6 +363,16 @@ export const AISuggestionsPage: React.FC<AISuggestionsPageProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Shortlist Modal */}
+      {shortlistModalIndex !== null && (
+        <ShortlistModal
+          suggestion={suggestions[shortlistModalIndex]}
+          onConfirm={handleShortlistConfirm}
+          onCancel={() => setShortlistModalIndex(null)}
+          isLoading={shortlistingIds.has(shortlistModalIndex)}
+        />
       )}
     </div>
   );

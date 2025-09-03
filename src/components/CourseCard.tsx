@@ -1,12 +1,14 @@
 import React from 'react';
+import { useState } from 'react';
 import { Edit2, Trash2, BookOpen, Heart } from 'lucide-react';
 import { Course } from '../types';
+import { ShortlistModal } from './ShortlistModal';
 
 interface CourseCardProps {
   course: Course;
   onEdit: (course: Course) => void;
   onDelete: (id: string) => void;
-  onShortlist: (course: Course) => void;
+  onShortlist: (course: Course, contentType: 'Blog' | 'Course', comments: string) => void;
   isShortlisted?: boolean;
 }
 
@@ -17,8 +19,26 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   onShortlist, 
   isShortlisted = false 
 }) => {
+  const [showShortlistModal, setShowShortlistModal] = useState(false);
+
+  const handleShortlistClick = () => {
+    if (isShortlisted) {
+      // If already shortlisted, remove directly
+      onShortlist(course, 'Course', '');
+    } else {
+      // If not shortlisted, show modal for additional info
+      setShowShortlistModal(true);
+    }
+  };
+
+  const handleShortlistConfirm = (contentType: 'Blog' | 'Course', comments: string) => {
+    onShortlist(course, contentType, comments);
+    setShowShortlistModal(false);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 p-6 border border-gray-100">
+    <>
+      <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 p-6 border border-gray-100">
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-2">
           <BookOpen className="w-5 h-5 text-blue-600" />
@@ -28,7 +48,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
         <div className="flex space-x-2">
           <button
-            onClick={() => onShortlist(course)}
+              onClick={handleShortlistClick}
             className={`p-2 rounded-md transition-colors ${
               isShortlisted
                 ? 'text-red-600 bg-red-50 hover:bg-red-100'
@@ -76,5 +96,14 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
       )}
     </div>
+      {/* Shortlist Modal */}
+      {showShortlistModal && (
+        <ShortlistModal
+          course={course}
+          onConfirm={handleShortlistConfirm}
+          onCancel={() => setShowShortlistModal(false)}
+        />
+      )}
+    </>
   );
 };

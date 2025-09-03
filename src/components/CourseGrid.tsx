@@ -10,7 +10,7 @@ interface CourseGridProps {
   isLoading: boolean;
   onEdit: (course: Course) => void;
   onDelete: (id: string) => void;
-  onShortlist: (course: Course) => void;
+  onShortlist: (course: Course, contentType: 'Blog' | 'Course', comments: string) => void;
   onAddCourse: () => void;
   onBulkUpload: () => void;
 }

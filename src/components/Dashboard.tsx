@@ -111,7 +111,11 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleShortlistCourseWrapper = (course: Course) => {
-    handleShortlistCourse(course, shortlistedCourseIds);
+    // This will be handled by the CourseCard component's modal
+  };
+
+  const handleShortlistCourseWithDetails = (course: Course, contentType: 'Blog' | 'Course', comments: string) => {
+    handleShortlistCourse(course, shortlistedCourseIds, contentType, comments);
   };
 
   // Calculate stats
@@ -189,7 +193,7 @@ export const Dashboard: React.FC = () => {
               isLoading={isLoading}
               onEdit={handleEditCourse}
               onDelete={handleDeleteCourse}
-              onShortlist={handleShortlistCourseWrapper}
+              onShortlist={handleShortlistCourseWithDetails}
               onAddCourse={handleAddCourse}
               onBulkUpload={handleBulkUploadClick}
             />

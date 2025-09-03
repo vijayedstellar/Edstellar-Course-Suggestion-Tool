@@ -31,4 +31,6 @@ export interface ShortlistedCourse {
   course_overview: string;
   shortlisted_at?: string;
   source: 'catalog' | 'ai_suggestion';
+  content_type: 'Blog' | 'Course';
+  comments?: string;
 }

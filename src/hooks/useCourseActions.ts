@@ -59,7 +59,12 @@ export const useCourseActions = ({
     }
   };
 
-  const handleShortlistCourse = async (course: Course, shortlistedCourseIds: Set<string>) => {
+  const handleShortlistCourse = async (
+    course: Course, 
+    shortlistedCourseIds: Set<string>,
+    contentType: 'Blog' | 'Course',
+    comments: string
+  ) => {
     try {
       const isCurrentlyShortlisted = course.id && shortlistedCourseIds.has(course.id);
       
@@ -78,7 +83,9 @@ export const useCourseActions = ({
           category: course.category,
           sub_category: course.sub_category,
           course_overview: course.course_overview,
-          source: 'catalog'
+          source: 'catalog',
+          content_type: contentType,
+          comments: comments
         });
       }
       
@@ -89,14 +96,20 @@ export const useCourseActions = ({
     }
   };
 
-  const handleShortlistSuggestion = async (suggestion: DeepseekSuggestion) => {
+  const handleShortlistSuggestion = async (
+    suggestion: DeepseekSuggestion,
+    contentType: 'Blog' | 'Course',
+    comments: string
+  ) => {
     try {
       await shortlistedCourseService.shortlistCourse({
         course_name: suggestion.course_name,
         category: suggestion.category,
         sub_category: suggestion.sub_category,
         course_overview: suggestion.course_overview,
-        source: 'ai_suggestion'
+        source: 'ai_suggestion',
+        content_type: contentType,
+        comments: comments
       });
       
       await loadShortlistedCourses();
